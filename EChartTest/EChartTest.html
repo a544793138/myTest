@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title></title>
+	<script type="text/javascript" src="F:/jQuery/jquery-3.2.1.min.js"></script>
+	<script src="F:/Echarts/echarts.js" ></script>
+	<link rel="stylesheet" href="">
+</head>
+<body style="background-color: black;">
+	<div id="echart1" style="width: 400px;height:180px;"></div>
+	<div id="echart2" style="width: 400px;height:180px;"></div>
+
+	<script>
+		var myChart1 = echarts.init(document.getElementById('echart1'));
+		var myChart2 = echarts.init(document.getElementById('echart2'));
+
+		/*ECharts配置*/
+	    var THIS = this;
+
+	    this.isData=true;
+
+	    this.setIsData = function(flg){
+			this.isData = flg;
+		}
+
+		//获取当天起始时间
+		this.getCurrentDataTime = function(){return (new Date(THIS.currentTime().setHours(0,0,0,0))).getTime()/1000;}
+
+		//获取当前时间
+		this.currentTime = function(){return new Date()};
+
+		//获取当前小时起始时间
+		this.getCurrentHourTime = function (){
+			var currentTime = THIS.currentTime();
+			return (new Date(currentTime.getFullYear(),currentTime.getMonth(),currentTime.getDate(),currentTime.getHours())).getTime()/1000;
+		}
+
+		var TIME_SPAN = {
+			data:24*3600,	//一天多少秒
+			hour:3600		//一小时多少秒
+		}
+
+		//总交易趋势时间跨度
+		this.tractionTimeSpan = function(){
+			if(THIS.isData)
+				return TIME_SPAN.data
+			else
+				return TIME_SPAN.hour
+		};  
+
+		this.appOrServiceTimeSpan = 24*3600; //应用或服务趋势时间跨度
+
+		var TIME_INTERVAL = {
+			fourHour:14400,		//4*60*60
+			tenMinute:600		//10*60
+		}
+
+		this.getMin = function(isTraction){
+			if(isTraction){
+				if(THIS.isData)
+					return THIS.getCurrentDataTime();
+				else
+					return THIS.getCurrentHourTime();
+			}
+			return THIS.getCurrentDataTime();
+		};
+
+		this.getMax  = function(isTraction){
+			if(isTraction)
+				return THIS.getMin(true)+THIS.tractionTimeSpan();
+			else
+				return THIS.getMin()+THIS.appOrServiceTimeSpan;
+		}
+
+		//总交易时间分割
+		this.tractionIntervalTime =function(){
+			if(THIS.isData)
+				return TIME_INTERVAL.fourHour
+			else
+				return TIME_INTERVAL.tenMinute
+		};
+
+
+		//模拟数据
+		//每隔1分钟一个值
+	    /*var data = [[1505145600,0],[1505145660,0],[],[], ...]*/
+	    
+	    this.getData = function() {
+	    	THIS.data = [[THIS.getCurrentDataTime(), 0]]
+	    	for (var i=1; i<=24*60; i++) {
+	    		THIS.data.push([THIS.getCurrentDataTime() + 60*i, THIS.data[i-1][1] + Math.round((Math.random()-0.5)*1000)]);
+	    	}
+	    	return THIS.data;
+	    }
+
+	    //日期格式
+	    Date.prototype.format = function(format) { 
+	       var date = { 
+	              "M+": this.getMonth() + 1, 
+	              "d+": this.getDate(), 
+	              "h+": this.getHours(), 
+	              "m+": this.getMinutes(), 
+	              "s+": this.getSeconds(), 
+	              "q+": Math.floor((this.getMonth() + 3) / 3), 
+	              "S+": this.getMilliseconds() 
+	       }; 
+	       if (/(y+)/i.test(format)) { 
+	              format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length)); 
+	       } 
+	       for (var k in date) { 
+	              if (new RegExp("(" + k + ")").test(format)) { 
+	                     format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? date[k] : ("00" + date[k]).substr(("" + date[k]).length)); 
+	              } 
+	       } 
+	       return format; 
+		} 
+	    
+
+
+	    // 指定图表的配置项和数据
+	    var option = {
+			textStyle:{color:'#fff'},
+			tooltip : {
+			    trigger: 'axis',
+			    axisPointer: {lineStyle:{color: '#fff'}},
+		        formatter:function (parm){
+		        	if(parm[0].value==undefined)
+		        		return;
+		        	var currentTime = new Date(parm[0].value[0]*1000);
+		        	var hour = currentTime.getHours();
+	    			var minute = currentTime.getMinutes();
+	    			if(hour<10)
+	    				hour='0'+hour;
+	    			if(minute<10)
+	    				minute='0'+minute;
+	    			var time = hour+":"+minute;
+	    			//时间
+		        	return '时间: ' + time +"<br/>"+parm[0].seriesName+"：" + parm[0].value[1];
+		        }
+		    },
+		    grid: {
+		        left: '3%',
+		        right: '4%',
+		        bottom: '3%',
+		        containLabel: true
+		    },
+		    xAxis : [
+		    	{	
+		    	   	type:'value',
+		    	    axisLine:{lineStyle:{color:'#fff'}},
+		        	axisTick:{lineStyle:{color:'#fff'}},
+		        	min:THIS.getMin(true),
+		        	max:THIS.getMax(true),
+		        	interval:THIS.tractionIntervalTime(),
+		        	splitLine:{show:false},
+		        	axisLabel:{
+		        		interval:'1',
+		        		formatter:function(parm){
+		        			//debugger;
+		        			var tickMarkDate = new Date(parm*1000);
+		        			var hour=tickMarkDate.getHours();
+		        			var minute = tickMarkDate.getMinutes();
+		        			if(tickMarkDate.getDate()>THIS.currentTime().getDate())
+		        				hour='24'
+		        			if(hour<10)
+		        				hour='0'+hour;
+		        			if(minute<10)
+		        				minute='0'+minute;
+		        			var tickMark = hour+":"+minute;
+		        			return tickMark;
+		        		}	
+		        	}   	
+		    	}
+		    ],
+		    yAxis : [
+		        {	
+		            type : 'value',
+		            boundaryGap: [0, '10%'],
+		            axisLine:{lineStyle:{color:'#fff'}},
+		        	axisTick:{lineStyle:{color:'#fff'}}
+		        }
+		    ],
+		    series : [
+		        {	
+		            name:'总交易',
+		            type:'line',
+		            showSymbol:false,
+		            showAllSymbol:false,
+		            smooth:true,
+		            sampling: 'average',
+		            lineStyle:{normal:{color:'#65cea5'}},
+		            areaStyle: {
+		            	normal:{
+		            		opacity: 0.5,
+		            		color:'#65cea5'
+		            	}
+		            }
+		        }
+		    ],
+		};
+
+		myChart1.setOption(option);
+
+		//获得数据后再次绘制图表
+		myChart1.setOption({
+			series: [{
+				data: THIS.getData()
+			}]
+		})
+
+		myChart2.setOption(option);
+
+		//获得数据后再次绘制图表
+		myChart2.setOption({
+			series: [{
+				data: THIS.getData()
+			}]
+		})
+	</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>异步加载</title>
+	<link rel="stylesheet" href="">
+    <script src="F:/jQuery/jquery-3.2.1.js"></script>
+    <script src="F:/Echarts/echarts.js"></script>
+</head>
+<body>
+	 <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+    <div id="main" style="width: 600px;height:400px;"></div>
+
+
+	<script>
+        //编写函数模拟异步延迟加载
+        function asynchronousData(lazyData) {
+            setTimeout(function() {
+                lazyData({
+                    categories:["衬衫","羊毛衫","雪纺衫","裤子","高跟鞋","袜子"],
+                    data:[20, 10, 50, 10, 5, 70]
+                });
+            }, 3000);
+        }
+
+
+		var myChart = echarts.init(document.getElementById('main'));
+
+		myChart.setOption({
+            title: {
+                text: '异步数据加载示例'
+            },
+            tooltip: {},
+            legend: {
+                data:['销量']
+            },
+            xAxis: {
+                data: []
+            },
+            yAxis: {},
+            series: [{
+                name: '销量',
+                type: 'bar',
+                data: []
+            }]
+        });
+
+        //用于显示loading
+        myChart.showLoading();  
+
+		//异步获取数据
+        asynchronousData(function(data) {
+            //隐藏loading
+             myChart.hideLoading();
+            //填入数据
+            myChart.setOption({
+                xAxis: {
+                    data: data.categories
+                },
+                series: [{
+                    //根据名字对应到响应的系列
+                    name: '销量',
+                    data: data.data
+                }]
+            });
+        });
+	</script>
+
+</body>
+</html>
